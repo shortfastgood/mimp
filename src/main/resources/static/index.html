@@ -1,0 +1,33 @@
+<!DOCTYPE>
+<html lang="en">
+<head>
+    <title>Man In the Middle Proxy - WEB Server</title>
+    <link rel="stylesheet" type="text/css" href="/webjars/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/main.css">
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+    <script src="/app.js"></script>
+</head>
+<body>
+    <noscript><h2 style="color: red">Seems your browser doesn't support Javascript! Websocket relies on Javascript being enabled.
+        Please enable Javascript and reload this page!</h2></noscript>
+    <div id="main-content" class="container">
+        <div class="row gy-md-5">
+            <div class="col-md-12"><div class="p-3 border bg-light">Man In the Middle Proxy - WEB Server</div></div>
+        </div>
+        <div class="row gy-md-5">
+            <div class="col-md-12">&nbsp;</div>
+        </div>
+        <div class="row gy-md-5">
+            <div class="col-md-3">
+                <form class="form-inline">
+                    <div class="btn-group">
+                        <button id="wsConnect" type="button" class="btn btn-outline-dark">Connect</button>
+                        <button id="wsDisconnect" type="button" class="btn btn-outline-dark" disabled="disabled">Disconnect</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

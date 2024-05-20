@@ -1,0 +1,61 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'java'
+    id 'com.github.ben-manes.versions' version '0.51.0'
+    id 'org.springframework.boot' version '3.2.5'
+    id 'io.spring.dependency-management' version '1.1.5'
+}
+
+group = 'org.homedns.dpaevd'
+version = '2024.1'
+
+java {
+    sourceCompatibility = 17
+    targetCompatibility = 17
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    implementation 'org.slf4j:slf4j-api:2.0.13',
+            'org.springframework.boot:spring-boot-starter-web',
+            'org.springframework.boot:spring-boot-starter-websocket',
+            'org.webjars:webjars-locator-core',
+            'org.webjars:bootstrap:5.3.3',
+            'org.webjars:sockjs-client:1.5.1',
+            'org.webjars:stomp-websocket:2.3.4'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test',
+            'org.junit.jupiter:junit-jupiter-api:5.10.2',
+            'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+}
+
+dependencyUpdates.resolutionStrategy = {
+    componentSelection { rules ->
+        rules.all { ComponentSelection selection ->
+            boolean rejected = ['alpha', 'beta', 'rc', 'cr', 'm', 'milestone', 'snapshot', 'sp'].any { qualifier ->
+                selection.candidate.version ==~ /(?i).*[.-]${qualifier}[.\d-]*/
+            }
+            if (rejected) {
+                selection.reject('Not a release version')
+            }
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
