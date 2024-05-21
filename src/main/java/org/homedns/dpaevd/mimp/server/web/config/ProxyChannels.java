@@ -69,6 +69,7 @@ public class ProxyChannels {
             MIMPProperties properties = new MIMPProperties();
             properties.put(MIMPConstants.LOCAL_SERVER_BUFFER_SIZE_KEY, 2048);
             properties.put(MIMPConstants.PROXY_HEADERS_KEY, environment.getProperty(MIMPConstants.PROXY_HEADERS_KEY, ""));
+            properties.put(MIMPConstants.PROXY_TRACE_HEADERS_KEY, environment.getProperty(MIMPConstants.PROXY_TRACE_HEADERS_KEY, "false"));
 
             MIMPIOCallback iOCallback = new MIMPIOCallback(properties);
 

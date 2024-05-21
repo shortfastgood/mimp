@@ -19,13 +19,13 @@ import org.homedns.dpaevd.mimp.impl.http.HTTPMethod;
 public class NetworkFunctions {
 
     static Protocol getProtocol(final String buffer) {
-        if ((buffer.startsWith(HTTPMethod.GET.name())
+        if (((buffer.startsWith(HTTPMethod.GET.name())
                 || buffer.startsWith(HTTPMethod.HEAD.name())
                 || buffer.startsWith(HTTPMethod.POST.name())
                 || buffer.startsWith(HTTPMethod.PUT.name())
                 || buffer.startsWith(HTTPMethod.DELETE.name())
                 || buffer.startsWith(HTTPMethod.TRACE.name())
-                || buffer.startsWith(HTTPMethod.CONNECT.name())) && buffer.contains("HTTP/1.1")) {
+                || buffer.startsWith(HTTPMethod.CONNECT.name())) && buffer.contains("HTTP/1.1")) || buffer.startsWith("HTTP/1.1")) {
             return Protocol.HTTP_1_1;
         }
         return Protocol.UNKNOWN;

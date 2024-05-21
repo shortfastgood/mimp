@@ -7,6 +7,7 @@
 package org.homedns.dpaevd.mimp.impl.http;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -18,7 +19,7 @@ import java.util.List;
  */
 public interface HTTPFunctions {
 
-    static byte[] addOrReplaceHeaders(final byte[] buffer, final List<HTTPHeader> headers) {
+    static byte[] addOrReplaceHeaders(final byte[] buffer, final List<HTTPHeader> additionalHeaders) {
         int bodyStart = 0;
         StringBuilder requestHeadBuffer = new StringBuilder();
         for(int i=0; i < (buffer.length - 4); i++) {
@@ -30,19 +31,17 @@ public interface HTTPFunctions {
             }
         }
         HTTPRequest request = createRequest(requestHeadBuffer.toString());
-        for( HTTPHeader header : headers ) {
-            boolean found = false;
-            for( HTTPHeader h : request.headers() ) {
-                if( h.name().equals(header.name()) ) {
-                    h.values().clear();
-                    h.values().addAll(header.values());
-                    found = true;
-                    break;
+        if (!additionalHeaders.isEmpty()) {
+            List<HTTPHeader> mergedHeaders = new ArrayList<>(additionalHeaders);
+            request.headers().forEach(h -> {
+                for( HTTPHeader additionalHeader : additionalHeaders ) {
+                    if(!h.name().equals(additionalHeader.name()) ) {
+                        mergedHeaders.add(h);
+                        break;
+                    }
                 }
-            }
-            if( !found ) {
-                request.headers().add(header);
-            }
+            });
+            request = new HTTPRequest(request.method(), request.requestURI(), request.protocol(), mergedHeaders);
         }
         String newRequestHeadString = request.toString();
         byte[] newRequestHead = new byte[newRequestHeadString.length()];
@@ -63,6 +62,18 @@ public interface HTTPFunctions {
         }
     }
 
+    static String getHead(final byte[] buffer) {
+        StringBuilder requestHeadBuffer = new StringBuilder();
+        for(int i=0; i < (buffer.length - 4); i++) {
+            if (buffer[i] == '\r' && buffer[i+1] == '\n' && buffer[i+2] == '\r' && buffer[i+3] == '\n') {
+                break;
+            } else {
+                requestHeadBuffer.append((char)buffer[i]);
+            }
+        }
+        return requestHeadBuffer.toString();
+    }
+
     static List<HTTPHeader> getHeaders(final String headersString) {
         List<HTTPHeader> headers = new ArrayList<>();
         String[] headerParts = headersString.split(":::");
@@ -71,7 +82,7 @@ public interface HTTPFunctions {
             if( header.length == 2 ) {
                 String headerName = header[0];
                 String[] headerValues = header[1].split(",");
-                HTTPHeader httpHeader = new HTTPHeader(headerName, List.of(headerValues));
+                HTTPHeader httpHeader = new HTTPHeader(headerName, Arrays.asList(headerValues));
                 headers.add(httpHeader);
             }
         }

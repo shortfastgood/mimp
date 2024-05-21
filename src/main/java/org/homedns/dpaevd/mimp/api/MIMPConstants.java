@@ -20,4 +20,6 @@ public interface MIMPConstants {
      String PROXY_CHANNELS_KEY = "mimp.proxy.channels";
 
      String PROXY_HEADERS_KEY = "mimp.proxy.headers";
+
+     String PROXY_TRACE_HEADERS_KEY = "mimp.proxy.trace.headers";
 }

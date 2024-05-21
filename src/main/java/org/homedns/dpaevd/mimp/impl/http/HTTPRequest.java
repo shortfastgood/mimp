@@ -6,6 +6,7 @@
  */
 package org.homedns.dpaevd.mimp.impl.http;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,7 +25,7 @@ public record HTTPRequest(HTTPMethod method, String requestURI, String protocol,
             throw new IllegalArgumentException("Invalid request URI");
         }
         if (headers == null) {
-            headers = List.of();
+            headers = new ArrayList<>();
         }
     }
 
