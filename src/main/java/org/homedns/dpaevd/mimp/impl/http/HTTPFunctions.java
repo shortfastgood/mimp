@@ -34,11 +34,15 @@ public interface HTTPFunctions {
         if (!additionalHeaders.isEmpty()) {
             List<HTTPHeader> mergedHeaders = new ArrayList<>(additionalHeaders);
             request.headers().forEach(h -> {
+                boolean found = false;
                 for( HTTPHeader additionalHeader : additionalHeaders ) {
-                    if(!h.name().equals(additionalHeader.name()) ) {
-                        mergedHeaders.add(h);
+                    if(h.name().equals(additionalHeader.name()) ) {
+                        found = true;
                         break;
                     }
+                }
+                if( !found ) {
+                    mergedHeaders.add(h);
                 }
             });
             request = new HTTPRequest(request.method(), request.requestURI(), request.protocol(), mergedHeaders);
