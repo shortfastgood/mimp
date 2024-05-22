@@ -69,7 +69,22 @@ public class MIMPSocketServer implements IMIMPSocketServer {
         if (serverExecutorService != null && !serverExecutorService.isShutdown()) {
             serverExecutorService.shutdownNow();
         }
-   }
+    }
+
+    @Override
+    public int getProxyIpPort() {
+        return proxyIpPort;
+    }
+
+    @Override
+    public String getRemoteHostName() {
+        return remoteHostName;
+    }
+
+    @Override
+    public int getRemoteIpPort() {
+        return remoteIpPort;
+    }
 
     public void initialize() {
         LOGGER.info("Initializing MIMP proxy server on port {} -> {}:{}", proxyIpPort, remoteHostName, remoteIpPort);

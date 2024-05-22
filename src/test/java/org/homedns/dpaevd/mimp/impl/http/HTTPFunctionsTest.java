@@ -41,7 +41,6 @@ public class HTTPFunctionsTest {
                 Accept-Language: it,it-IT;q=0.9,de;q=0.8,en;q=0.7,en-US;q=0.6\r
                 If-Modified-Since: Sun, 19 May 2024 17:07:52 GMT\r
                 \r
-                \r
                 """;
 
         HTTPRequest request = HTTPFunctions.createRequest(buffer);

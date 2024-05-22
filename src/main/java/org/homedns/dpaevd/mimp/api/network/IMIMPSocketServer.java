@@ -21,7 +21,27 @@ public interface IMIMPSocketServer {
     void cleanup();
 
     /**
+     * @return the proxy IP address.
+     */
+    int getProxyIpPort();
+
+    /**
+     * @return the remote host name.
+     */
+    String getRemoteHostName();
+
+    /**
+     * @return the remote port.
+     */
+    int getRemoteIpPort();
+
+    /**
      * Sets up the server.
      */
     void initialize();
+
+    /**
+     * @param callback Callback interface to receive status updates.
+     */
+    void setCallback(final IMIMPSocketServerStatusCallback callback);
 }
