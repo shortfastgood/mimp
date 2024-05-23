@@ -69,6 +69,14 @@ public class MIMPSocketServer implements IMIMPSocketServer {
         if (serverExecutorService != null && !serverExecutorService.isShutdown()) {
             serverExecutorService.shutdownNow();
         }
+        if (serverSocket != null && !serverSocket.isClosed()) {
+            try {
+                serverSocket.close();
+            } catch (IOException ioe) {
+                LOGGER.error("Cannot close the server channel on port {}. Reason: {}", proxyIpPort, ioe.getMessage());
+            }
+            LOGGER.info("Closed the server channel on port {}", proxyIpPort);
+        }
     }
 
     @Override

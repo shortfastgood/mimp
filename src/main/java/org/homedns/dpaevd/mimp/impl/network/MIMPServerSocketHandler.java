@@ -57,32 +57,6 @@ public class MIMPServerSocketHandler implements IMIMPServerSocketHandler {
 
     @Override public void cleanup() {
         status = MIMPSocketHandlerStatus.DISCONNECTED;
-        if (workerExecutor != null) {
-            workerExecutor.shutdownNow();
-        }
-        if (proxySocketIn != null) {
-            try {
-                proxySocketIn.close();
-            } catch (IOException ioe) {
-                LOGGER.error("Cannot close proxy socket input stream! Cause: {}", ioe.getMessage());
-            }
-            proxySocketIn = null;
-        }
-        if (proxySocketOut != null) {
-            try {
-                proxySocketOut.close();
-            } catch (IOException ioe) {
-                LOGGER.error("Cannot close proxy socket output stream! Cause: {}", ioe.getMessage());
-            }
-            proxySocketOut = null;
-        }
-        if (proxySocket != null && !proxySocket.isClosed()) {
-            try {
-                proxySocket.close();
-            } catch (IOException ioe) {
-                LOGGER.error("Cannot close proxy socket! Cause: {}", ioe.getMessage());
-            }
-        }
         if (remoteSocketIn != null) {
             try {
                 remoteSocketIn.close();
@@ -90,6 +64,7 @@ public class MIMPServerSocketHandler implements IMIMPServerSocketHandler {
                 LOGGER.error("Cannot close remote socket input stream! Cause: {}", ioe.getMessage());
             }
             remoteSocketIn = null;
+            LOGGER.info("Closed remote socket input stream");
         }
         if (remoteSocketOut != null) {
             try {
@@ -98,6 +73,7 @@ public class MIMPServerSocketHandler implements IMIMPServerSocketHandler {
                 LOGGER.error("Cannot close remote socket output stream! Cause: {}", ioe.getMessage());
             }
             remoteSocketOut = null;
+            LOGGER.info("Closed remote socket output stream");
         }
         if (remoteSocket != null && !remoteSocket.isClosed()) {
             try {
@@ -105,6 +81,37 @@ public class MIMPServerSocketHandler implements IMIMPServerSocketHandler {
             } catch (IOException ioe) {
                 LOGGER.error("Cannot close remote socket! Cause: {}", ioe.getMessage());
             }
+            LOGGER.info("Closed remote socket");
+        }
+        if (proxySocketIn != null) {
+            try {
+                proxySocketIn.close();
+            } catch (IOException ioe) {
+                LOGGER.error("Cannot close proxy socket input stream! Cause: {}", ioe.getMessage());
+            }
+            proxySocketIn = null;
+            LOGGER.info("Closed proxy socket input stream");
+        }
+        if (proxySocketOut != null) {
+            try {
+                proxySocketOut.close();
+            } catch (IOException ioe) {
+                LOGGER.error("Cannot close proxy socket output stream! Cause: {}", ioe.getMessage());
+            }
+            proxySocketOut = null;
+            LOGGER.info("Closed proxy socket output stream");
+        }
+        if (proxySocket != null && !proxySocket.isClosed()) {
+            try {
+                proxySocket.close();
+            } catch (IOException ioe) {
+                LOGGER.error("Cannot close proxy socket! Cause: {}", ioe.getMessage());
+            }
+            LOGGER.info("Closed proxy socket");
+        }
+        if (workerExecutor != null) {
+            workerExecutor.shutdown();
+            LOGGER.info("Shutdown worker executor");
         }
     }
 
