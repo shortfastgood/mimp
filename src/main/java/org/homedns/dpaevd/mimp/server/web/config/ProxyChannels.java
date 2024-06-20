@@ -58,13 +58,15 @@ public class ProxyChannels {
         String[] proxyChannels = proxyChannelCollection.split(",");
         Arrays.asList(proxyChannels).forEach(proxyChannel -> {
             String[] proxyChannelParts = proxyChannel.split(":");
-            if (proxyChannelParts.length != 3) {
+            if (proxyChannelParts.length <3 || proxyChannelParts.length > 4) {
                 LOGGER.error("Invalid proxy channel: " + proxyChannel);
                 return;
             }
             int proxyIpPort = Integer.parseInt(proxyChannelParts[0]);
             String remoteHostName = proxyChannelParts[1];
             int remotePort = Integer.parseInt(proxyChannelParts[2]);
+
+            boolean secure = proxyChannelParts.length == 4 && "secure".equalsIgnoreCase(proxyChannelParts[3]);
 
             MIMPProperties properties = new MIMPProperties();
             properties.put(MIMPConstants.LOCAL_SERVER_BUFFER_SIZE_KEY, 2048);
@@ -73,7 +75,7 @@ public class ProxyChannels {
 
             MIMPIOCallback iOCallback = new MIMPIOCallback(properties);
 
-            IMIMPSocketServer proxy = new MIMPSocketServer(iOCallback, properties, proxyIpPort, remoteHostName, remotePort);
+            MIMPSocketServer proxy = new MIMPSocketServer(iOCallback, properties, proxyIpPort, remoteHostName, remotePort);
             proxy.initialize();
 
             proxyChannelList.add(proxy);

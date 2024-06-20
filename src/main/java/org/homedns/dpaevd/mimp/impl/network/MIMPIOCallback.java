@@ -51,14 +51,9 @@ public class MIMPIOCallback implements IMIMPIOCallback {
                 return;
             }
             if (bytesRead == -1) {
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    // ignore
-                }
-                if (handler.isNotConnectedOrOpen()) {
-                    return;
-                }
+                // the connection has to be considered as stale. Both channels have to be closed.
+                LOGGER.warn("Connection closed by the client");
+                handler.cleanup();
             } else {
                 byte[] outBuffer = new byte[bytesRead];
                 System.arraycopy(buffer, 0, outBuffer, 0, bytesRead);
@@ -98,14 +93,9 @@ public class MIMPIOCallback implements IMIMPIOCallback {
                 bytesRead = -1;
             }
             if (bytesRead == -1) {
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    // ignore
-                }
-                if (handler.isNotConnectedOrOpen()) {
-                    return;
-                }
+                // the connection has to be considered as stale. Both channels have to be closed.
+                LOGGER.warn("Connection closed by the remote");
+                handler.cleanup();
             } else {
                 byte[] outBuffer = new byte[bytesRead];
                 System.arraycopy(buffer, 0, outBuffer, 0, bytesRead);

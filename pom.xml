@@ -2,10 +2,16 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.homedns.dpaevd</groupId>
     <artifactId>mimp</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <packaging>jar</packaging>
     <name>Man In the Middle Proxy</name>
     <description>Development and Test Socket Proxy</description>
+    <licenses>
+        <license>
+            <name>GNU Lesser General Public License v2.1</name>
+            <url>https://github.com/shortfastgood/mimp/blob/main/LICENSE</url>
+        </license>
+    </licenses>
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <maven.compiler.source>17</maven.compiler.source>
@@ -74,6 +80,7 @@
             <groupId>org.webjars</groupId>
             <artifactId>popper.js</artifactId>
             <version>2.9.3</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -91,4 +98,22 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.1</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <addDefaultEntries>true</addDefaultEntries>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

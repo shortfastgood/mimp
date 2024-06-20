@@ -54,7 +54,20 @@ public class MIMPSocketServer implements IMIMPSocketServer {
 
     private volatile MIMPSocketServerStatus serviceStatus;
 
-    public MIMPSocketServer(final IMIMPIOCallback iOCallback, final IMIMPProperties properties, final int proxyIpPort, final String remoteHostName, final int remoteIpPort) {
+    /**
+     *
+     * @param iOCallback Callback interface to handle the data exchange.
+     * @param properties Properties.
+     * @param proxyIpPort Proxy port.
+     * @param remoteHostName Remote host name.
+     * @param remoteIpPort Remote port.
+     */
+    public MIMPSocketServer(
+            final IMIMPIOCallback iOCallback,
+            final IMIMPProperties properties,
+            final int proxyIpPort,
+            final String remoteHostName,
+            final int remoteIpPort) {
         this.iOCallback = iOCallback;
         this.properties = properties;
         this.proxyIpPort = proxyIpPort;
@@ -149,6 +162,7 @@ public class MIMPSocketServer implements IMIMPSocketServer {
                     remoteSocket.connect(new InetSocketAddress(remoteHostName, remoteIpPort));
                     remoteSocket.setReceiveBufferSize(byteBufferSize);
                     remoteSocket.setSendBufferSize(byteBufferSize);
+                    remoteSocket.setSoLinger(true, 0);
                     remoteSocket.setKeepAlive(true);
 
                     IMIMPServerSocketHandler handler = new MIMPServerSocketHandler(iOCallback, proxySocket, remoteSocket);
