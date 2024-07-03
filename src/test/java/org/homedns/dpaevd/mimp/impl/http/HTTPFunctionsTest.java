@@ -49,4 +49,29 @@ public class HTTPFunctionsTest {
         assertEquals("/", request.requestURI());
         assertEquals(17, request.headers().size());
     }
+
+    @Test
+    void createResponseTest() {
+        String buffer = """
+                HTTP/1.1 200 OK\r
+                Date: Sun, 19 May 2024 17:07:52 GMT\r
+                Server: Apache/2.4.41 (Unix) OpenSSL/1.1.1d PHP/7.4.3 mod_perl/2.0.8-dev Perl/v5.16.3\r
+                Last-Modified: Sun, 19 May 2024 17:07:52 GMT\r
+                ETag: "2c-5c6e1f1b7a1e4"\r
+                Accept-Ranges: bytes\r
+                Content-Length: 44\r
+                Keep-Alive: timeout=5, max=100\r
+                Connection: Keep-Alive\r
+                Content-Type: text/html\r
+                \r
+                <html><body><h1>It works!</h1></body></html>\r
+                """;
+
+        HTTPResponse response = HTTPFunctions.createResponse(buffer);
+        assertNotNull(response);
+        assertEquals(200, response.statusCode());
+        assertEquals("OK", response.reasonPhrase());
+        assertEquals(9, response.headers().size());
+        assertEquals("<html><body><h1>It works!</h1></body></html>", new String(HTTPFunctions.getBody(buffer.getBytes())).trim());
+    }
 }

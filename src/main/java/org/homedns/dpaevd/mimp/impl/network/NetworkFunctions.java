@@ -6,6 +6,7 @@
  */
 package org.homedns.dpaevd.mimp.impl.network;
 
+import org.homedns.dpaevd.mimp.api.network.Protocol;
 import org.homedns.dpaevd.mimp.api.util.Alphabet;
 import org.homedns.dpaevd.mimp.impl.http.HTTPMethod;
 

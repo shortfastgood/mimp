@@ -23,4 +23,12 @@ public interface IMIMPProperties {
      */
     int getIntValue(final String key, final int defaultValue);
 
+    /**
+     * Returns the value of the property with the specified key.
+     *
+     * @param key The key of the property.
+     * @return The value of the property.
+     */
+    String getProperty(String key, String defaultValue);
+
 }

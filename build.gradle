@@ -14,7 +14,7 @@ plugins {
 }
 
 group = 'org.homedns.dpaevd'
-version = '2024.1.7'
+version = '2024.1-110'
 
 java {
     sourceCompatibility = 17

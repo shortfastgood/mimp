@@ -8,6 +8,9 @@ package org.homedns.dpaevd.mimp.impl.http;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
+import org.homedns.dpaevd.mimp.api.network.Protocol;
 
 /**
  * Simplified HTTP request for proxy purposes.
@@ -16,7 +19,7 @@ import java.util.List;
  * @version 2024.1
  * @since 2024.1
  */
-public record HTTPRequest(HTTPMethod method, String requestURI, String protocol, List<HTTPHeader> headers) {
+public record HTTPRequest(HTTPMethod method, String requestURI, Protocol protocol, List<HTTPHeader> headers) {
     public HTTPRequest {
         if (method == null) {
             throw new IllegalArgumentException("Invalid HTTP method");
@@ -24,9 +27,21 @@ public record HTTPRequest(HTTPMethod method, String requestURI, String protocol,
         if (requestURI == null || requestURI.isBlank()) {
             throw new IllegalArgumentException("Invalid request URI");
         }
+        if (protocol == null) {
+             protocol = Protocol.UNKNOWN;
+        }
         if (headers == null) {
             headers = new ArrayList<>();
         }
+    }
+
+    public Optional<HTTPHeader> getHeader(String name) {
+        return headers.stream().filter(h -> h.name().equals(name)).findFirst();
+    }
+
+    public boolean isKeepAlive() {
+        Optional<HTTPHeader> connectionHeader = getHeader("Connection");
+        return connectionHeader.map(httpHeader -> httpHeader.values().contains("keep-alive")).orElse(false);
     }
 
     @Override public String toString() {

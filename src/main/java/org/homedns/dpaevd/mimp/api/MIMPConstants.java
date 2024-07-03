@@ -15,6 +15,8 @@ package org.homedns.dpaevd.mimp.api;
  */
 public interface MIMPConstants {
 
+     int BUFFER_SIZE = 1024;
+
      String LOCAL_SERVER_BUFFER_SIZE_KEY = "mimp.proxy.buffer.size";
 
      String PROXY_CHANNELS_KEY = "mimp.proxy.channels";

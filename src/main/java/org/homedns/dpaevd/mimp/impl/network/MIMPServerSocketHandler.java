@@ -6,9 +6,18 @@
  */
 package org.homedns.dpaevd.mimp.impl.network;
 
+import org.homedns.dpaevd.mimp.api.MIMPConstants;
+import org.homedns.dpaevd.mimp.api.config.IMIMPProperties;
 import org.homedns.dpaevd.mimp.api.network.IMIMPIOCallback;
 import org.homedns.dpaevd.mimp.api.network.IMIMPServerSocketHandler;
 import org.homedns.dpaevd.mimp.api.network.MIMPSocketHandlerStatus;
+import org.homedns.dpaevd.mimp.api.network.Protocol;
+import org.homedns.dpaevd.mimp.api.util.Alphabet;
+import org.homedns.dpaevd.mimp.impl.http.HTTPFunctions;
+import org.homedns.dpaevd.mimp.impl.http.HTTPHeader;
+import org.homedns.dpaevd.mimp.impl.http.HTTPMethod;
+import org.homedns.dpaevd.mimp.impl.http.HTTPRequest;
+import org.homedns.dpaevd.mimp.impl.http.HTTPResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +25,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,7 +40,13 @@ public class MIMPServerSocketHandler implements IMIMPServerSocketHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MIMPServerSocketHandler.class);
 
+    private ExecutorService inBoundWorkerExecutor;
+
     private final IMIMPIOCallback iOCallback;
+
+    private ExecutorService outBoundWorkerExecutor;
+
+    private final IMIMPProperties properties;
 
     private final Socket proxySocket;
 
@@ -48,14 +64,56 @@ public class MIMPServerSocketHandler implements IMIMPServerSocketHandler {
 
     private volatile MIMPSocketHandlerStatus status;
 
-    private ExecutorService workerExecutor;
+    private final boolean traceHeaders;
 
-    public MIMPServerSocketHandler(final IMIMPIOCallback iOCallback, final Socket proxySocket, final Socket remoteSocket) {
+    public MIMPServerSocketHandler(final IMIMPIOCallback iOCallback, IMIMPProperties properties, final Socket proxySocket, final Socket remoteSocket) {
         this.iOCallback = iOCallback;
+        this.properties = properties;
         this.proxySocket = proxySocket;
         this.remoteSocket = remoteSocket;
         this.status = MIMPSocketHandlerStatus.CONNECTED;
         this.remoteInfo = remoteSocket.getInetAddress().getHostAddress() + ":" + remoteSocket.getPort();
+        this.traceHeaders = Boolean.parseBoolean(properties.getProperty(MIMPConstants.PROXY_TRACE_HEADERS_KEY, "false"));
+    }
+
+
+    /**
+     * Checks the protocol.
+     * @param proxySocketIn The input stream of the proxy socket.
+     * @param remoteSocketOut The output stream of the remote socket.
+     * @param remoteSocketIn The input stream of the remote socket.
+     * @param proxySocketOut The output stream of the proxy socket.
+     * @param recursive The flag indicating if the method should call itself.
+     */
+    void checkProtocol(
+            final DataInputStream proxySocketIn,
+            final DataOutputStream remoteSocketOut,
+            final DataInputStream remoteSocketIn,
+            final DataOutputStream proxySocketOut,
+            boolean recursive) {
+        byte[] buffer = iOCallback.in(this, proxySocketIn);
+        if (isNotConnectedOrOpen()) {
+            return;
+        }
+
+        boolean isRequest = true;
+        for (int i=0; i < buffer.length && i < 3; i++) {
+            if (!Alphabet.UPPERCASE.contains((char)buffer[i]) && !Alphabet.LOWERCASE.contains((char)buffer[i])) {
+                isRequest = false;
+                i = 4;
+            }
+        }
+
+        if (isRequest) {
+            HTTPRequest request = HTTPFunctions.createRequest(HTTPFunctions.getHead(buffer));
+            if (Protocol.HTTP_1_0.equals(request.protocol()) || Protocol.HTTP_1_1.equals(request.protocol())) {
+                handleHTTP1_1(request, HTTPFunctions.getBody(buffer), proxySocketIn, remoteSocketOut, remoteSocketIn, proxySocketOut, recursive);
+            } else {
+                iOCallback.out(this, remoteSocketOut, buffer);
+            }
+        } else {
+            iOCallback.out(this, remoteSocketOut, buffer);
+        }
     }
 
     @Override public void cleanup() {
@@ -112,9 +170,13 @@ public class MIMPServerSocketHandler implements IMIMPServerSocketHandler {
             }
             LOGGER.debug("Closed proxy socket");
         }
-        if (workerExecutor != null) {
-            workerExecutor.shutdown();
-            LOGGER.info("Shutdown worker executor for remote {}", remoteInfo);
+        if (inBoundWorkerExecutor != null) {
+            inBoundWorkerExecutor.shutdown();
+            LOGGER.info("Shutdown worker executor for inbound traffic {}", remoteInfo);
+        }
+        if (outBoundWorkerExecutor != null) {
+            outBoundWorkerExecutor.shutdown();
+            LOGGER.info("Shutdown worker executor for outbound traffic {}", remoteInfo);
         }
     }
 
@@ -135,7 +197,7 @@ public class MIMPServerSocketHandler implements IMIMPServerSocketHandler {
     }
 
     @Override public void execute() {
-        workerExecutor = Executors.newFixedThreadPool(2);
+
         try {
             proxySocketIn = new DataInputStream(proxySocket.getInputStream());
             proxySocketOut = new DataOutputStream((proxySocket.getOutputStream()));
@@ -150,7 +212,102 @@ public class MIMPServerSocketHandler implements IMIMPServerSocketHandler {
 
         LOGGER.info("Establish IO with remote {}", remoteInfo);
 
-        workerExecutor.submit(() -> iOCallback.proxyInRemoteOut(this, proxySocketIn, remoteSocketOut));
-        workerExecutor.submit(() -> iOCallback.remoteInProxyOut(this, remoteSocketIn, proxySocketOut));
+        checkProtocol(proxySocketIn, remoteSocketOut, remoteSocketIn, proxySocketOut, true);
+
+        if (isNotConnectedOrOpen()) {
+            return;
+        }
+
+        inBoundWorkerExecutor = Executors.newFixedThreadPool(1);
+        outBoundWorkerExecutor = Executors.newFixedThreadPool(1);
+
+        outBoundWorkerExecutor.submit(() -> iOCallback.proxyInRemoteOut(this, proxySocketIn, remoteSocketOut));
+        inBoundWorkerExecutor.submit(() -> iOCallback.remoteInProxyOut(this, remoteSocketIn, proxySocketOut));
+    }
+
+    void handleHTTP1_1(
+            HTTPRequest request,
+            byte[] body,
+            DataInputStream proxySocketIn,
+            DataOutputStream remoteSocketOut,
+            DataInputStream remoteSocketIn,
+            DataOutputStream proxySocketOut,
+            boolean recursive) {
+
+        // patch headers
+        List<HTTPHeader> additionalHeaders = HTTPFunctions.getHeaders(properties.getProperty(MIMPConstants.PROXY_HEADERS_KEY, ""));
+        if (!additionalHeaders.isEmpty()) {
+            HTTPFunctions.addOrReplaceHeaders(request, additionalHeaders);
+        }
+        if (traceHeaders) {
+            StringBuilder buf = new StringBuilder();
+            buf.append("\n>> ").append(request.method().name()).append(" ").append(request.requestURI()).append(" ").append(request.protocol().getProtocolString());
+            request.headers().forEach(h -> buf.append(String.format("\n>> %s: %s", h.name(), String.join(",", h.values()))));
+            buf.append('\n');
+            LOGGER.info(buf.toString());
+        }
+
+        byte[] requestBuffer = HTTPFunctions.requestToBytes(request);
+        byte[] outBuffer = new byte[requestBuffer.length + body.length];
+        System.arraycopy(requestBuffer, 0, outBuffer, 0, requestBuffer.length);
+        System.arraycopy(body, 0, outBuffer, requestBuffer.length, body.length);
+
+        iOCallback.out(this, remoteSocketOut, outBuffer);
+        if (isNotConnectedOrOpen()) {
+            return;
+        }
+
+        // handle large posts
+        try {
+            while ((HTTPMethod.POST.equals(request.method()) || HTTPMethod.PUT.equals(request.method())) && proxySocketIn.available() > 0) {
+                byte[] buffer = iOCallback.in(this, proxySocketIn);
+                if (buffer.length > 0) {
+                    iOCallback.out(this, remoteSocketOut, buffer);
+                }
+            }
+        } catch (IOException ioe) {
+            LOGGER.error("Error reading extended body from proxy socket {}", ioe.getMessage());
+            cleanup();
+            return;
+        }
+
+        byte[] buffer = iOCallback.remoteIn(this, remoteSocketIn);
+        if (isNotConnectedOrOpen()) {
+            return;
+        }
+        HTTPResponse response = HTTPFunctions.createResponse(HTTPFunctions.getHead(buffer));
+        if (traceHeaders) {
+            StringBuilder buf = new StringBuilder();
+            buf.append("\n<< ").append(response.protocol().getProtocolString()).append(" ").append(response.statusCode()).append(" ").append(response.reasonPhrase());
+            response.headers().forEach(h -> buf.append(String.format("\n<< %s: %s", h.name(), String.join(",", h.values()))));
+            buf.append('\n');
+            LOGGER.info(buf.toString());
+        }
+
+        iOCallback.out(this, proxySocketOut, buffer);
+        if (isNotConnectedOrOpen()) {
+            return;
+        }
+
+        try{
+            while (remoteSocketIn.available() > 0) {
+                buffer = iOCallback.remoteIn(this, remoteSocketIn);
+                if (buffer.length > 0) {
+                    iOCallback.out(this, proxySocketOut, buffer);
+                }
+            }
+        } catch (IOException ioe) {
+            LOGGER.error("Error reading from remote socket {}", ioe.getMessage());
+            cleanup();
+            return;
+        }
+
+        while (recursive && !isNotConnectedOrOpen()) {
+            checkProtocol(proxySocketIn, remoteSocketOut, remoteSocketIn, proxySocketOut, false);
+        }
+
+        if (recursive) {
+            cleanup();
+        }
     }
 }

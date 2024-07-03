@@ -36,6 +36,8 @@ public class MIMPSocketServer implements IMIMPSocketServer {
 
     private IMIMPSocketServerStatusCallback callback;
 
+    private ExecutorService clientExecutorService;
+
     private final int proxyIpPort;
 
     private final IMIMPIOCallback iOCallback;
@@ -111,6 +113,7 @@ public class MIMPSocketServer implements IMIMPSocketServer {
         LOGGER.info("Initializing MIMP proxy server on port {} -> {}:{}", proxyIpPort, remoteHostName, remoteIpPort);
         final int byteBufferSize = properties.getIntValue(MIMPConstants.LOCAL_SERVER_BUFFER_SIZE_KEY, 2048);
         final InetSocketAddress serverAddress = new InetSocketAddress(proxyIpPort);
+        clientExecutorService = Executors.newWorkStealingPool(8);
         serverExecutorService = Executors.newSingleThreadExecutor();
         serverExecutorService.submit(() -> {
             try {
@@ -149,25 +152,36 @@ public class MIMPSocketServer implements IMIMPSocketServer {
 
                 while (!serverSocket.isClosed()) {
                     Socket proxySocket = serverSocket.accept();
-                    proxySocket.setReceiveBufferSize(byteBufferSize);
-                    proxySocket.setSendBufferSize(byteBufferSize);
-                    proxySocket.setKeepAlive(true);
-                    proxySocket.setSoLinger(true, 0);
+
+                    clientExecutorService.execute(() -> {
+                        LOGGER.info("Accepted connection from {}", proxySocket.getRemoteSocketAddress());
+
+                        try {
+                            proxySocket.setReceiveBufferSize(byteBufferSize);
+                            proxySocket.setSendBufferSize(byteBufferSize);
+                            proxySocket.setKeepAlive(true);
+                            proxySocket.setSoLinger(true, 0);
+
+                            Socket remoteSocket = new Socket();
+                            remoteSocket.connect(new InetSocketAddress(remoteHostName, remoteIpPort));
+                            remoteSocket.setReceiveBufferSize(byteBufferSize);
+                            remoteSocket.setSendBufferSize(byteBufferSize);
+                            remoteSocket.setSoLinger(true, 0);
+                            remoteSocket.setKeepAlive(true);
+
+                            IMIMPServerSocketHandler handler = new MIMPServerSocketHandler(iOCallback, properties, proxySocket, remoteSocket);
+                            serverSocketHandlers.add(handler);
+                            handler.execute();
+
+                        } catch (IOException ioe) {
+                            LOGGER.error("Cannot establish connection with remote {}. Reason: {}", remoteHostName, ioe.getMessage());
+                        }
+
+                    });
 
                     List<IMIMPServerSocketHandler> zombies = serverSocketHandlers.stream().filter(IMIMPServerSocketHandler::isNotConnectedOrOpen).toList();
                     zombies.forEach(IMIMPServerSocketHandler::cleanup);
                     zombies.forEach(serverSocketHandlers::remove);
-
-                    Socket remoteSocket = new Socket();
-                    remoteSocket.connect(new InetSocketAddress(remoteHostName, remoteIpPort));
-                    remoteSocket.setReceiveBufferSize(byteBufferSize);
-                    remoteSocket.setSendBufferSize(byteBufferSize);
-                    remoteSocket.setSoLinger(true, 0);
-                    remoteSocket.setKeepAlive(true);
-
-                    IMIMPServerSocketHandler handler = new MIMPServerSocketHandler(iOCallback, proxySocket, remoteSocket);
-                    serverSocketHandlers.add(handler);
-                    handler.execute();
                 }
 
             } catch (IOException ioe) {

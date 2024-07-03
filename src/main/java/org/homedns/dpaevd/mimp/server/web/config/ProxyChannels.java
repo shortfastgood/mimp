@@ -73,7 +73,7 @@ public class ProxyChannels {
             properties.put(MIMPConstants.PROXY_HEADERS_KEY, environment.getProperty(MIMPConstants.PROXY_HEADERS_KEY, ""));
             properties.put(MIMPConstants.PROXY_TRACE_HEADERS_KEY, environment.getProperty(MIMPConstants.PROXY_TRACE_HEADERS_KEY, "false"));
 
-            MIMPIOCallback iOCallback = new MIMPIOCallback(properties);
+            MIMPIOCallback iOCallback = new MIMPIOCallback();
 
             MIMPSocketServer proxy = new MIMPSocketServer(iOCallback, properties, proxyIpPort, remoteHostName, remotePort);
             proxy.initialize();
