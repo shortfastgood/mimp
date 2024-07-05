@@ -9,11 +9,13 @@ package org.homedns.dpaevd.mimp.impl.network;
 import org.homedns.dpaevd.mimp.api.MIMPConstants;
 import org.homedns.dpaevd.mimp.api.network.IMIMPIOCallback;
 import org.homedns.dpaevd.mimp.api.network.IMIMPServerSocketHandler;
+import org.homedns.dpaevd.mimp.api.network.MIMPServerSocketHandlerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  * Handles the data exchange between the proxy and the remote.
@@ -27,21 +29,18 @@ public class MIMPIOCallback implements IMIMPIOCallback {
     private static final Logger LOGGER = LoggerFactory.getLogger(MIMPIOCallback.class);
 
     @Override
-    public byte[] in(IMIMPServerSocketHandler handler, DataInputStream proxyIn) {
+    public byte[] in(DataInputStream in) {
+
         byte[] buffer = new byte[MIMPConstants.BUFFER_SIZE];
         int bytesRead;
         try {
-            bytesRead = proxyIn.read(buffer);
+            bytesRead = in.read(buffer);
         } catch (Exception e) {
-            LOGGER.warn("Error reading data from proxy client {}", e.getMessage());
-            handler.cleanup();
-            return new byte[0];
+            throw new MIMPServerSocketHandlerException("Error reading data from the input stream: " + e.getMessage());
         }
         if (bytesRead == -1) {
             // the connection has to be considered as stale. Both channels have to be closed.
-            LOGGER.warn("Connection closed by the client");
-            handler.cleanup();
-            return new byte[0];
+            throw new MIMPServerSocketHandlerException("Connection closed by the client/remote");
         } else if (bytesRead > 0) {
             byte[] inBuffer = new byte[bytesRead];
             System.arraycopy(buffer, 0, inBuffer, 0, bytesRead);
@@ -49,6 +48,26 @@ public class MIMPIOCallback implements IMIMPIOCallback {
         } else {
             return new byte[0];
         }
+    }
+
+    @Override
+    public byte[] inAndWait(DataInputStream in) {
+
+        // wait for data to be available
+        try {
+            while (in.available() == 0) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
+        } catch (IOException ioe) {
+            throw new MIMPServerSocketHandlerException("Error waiting data from the input stream: " + ioe.getMessage());
+        }
+
+        return in(in);
+
     }
 
     @Override
@@ -77,30 +96,29 @@ public class MIMPIOCallback implements IMIMPIOCallback {
     }
 
     @Override
-    public void out(IMIMPServerSocketHandler handler, DataOutputStream out, byte[] buffer) {
+    public void out(DataOutputStream out, byte[] buffer) {
         try {
             out.write(buffer);
             out.flush();
-        } catch (Exception e) {
-            LOGGER.error("Error writing data {}", e.getMessage());
-            handler.cleanup();
+        } catch (IOException ioe) {
+            throw new MIMPServerSocketHandlerException("Error writing data to the output stream: " + ioe.getMessage());
         }
     }
 
     @Override public void proxyInRemoteOut(IMIMPServerSocketHandler handler, DataInputStream proxyIn, DataOutputStream remoteOut) {
         while(!handler.isNotConnectedOrOpen()) {
-            byte[] buffer = in(handler, proxyIn);
+            byte[] buffer = in(proxyIn);
             if (buffer.length > 0) {
-                out(handler, remoteOut, buffer);
+                out(remoteOut, buffer);
             }
         }
     }
 
     @Override public void remoteInProxyOut(IMIMPServerSocketHandler handler, DataInputStream remoteIn, DataOutputStream proxyOut) {
         while(!handler.isNotConnectedOrOpen()) {
-            byte[] buffer = in(handler, remoteIn);
+            byte[] buffer = in(remoteIn);
             if (buffer.length > 0) {
-                out(handler, proxyOut, buffer);
+                out(proxyOut, buffer);
             }
         }
     }

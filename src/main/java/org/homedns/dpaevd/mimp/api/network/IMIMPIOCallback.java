@@ -20,19 +20,24 @@ public interface IMIMPIOCallback {
 
     /**
      * Handles the incoming reasonPhrase.
-     * @param handler The handler of the socket.
      * @param in The input stream of the reasonPhrase.
      * @return The incoming reasonPhrase or the first part of it.
      */
-    byte[] in(IMIMPServerSocketHandler handler, DataInputStream in);
+    byte[] in(DataInputStream in);
+
+    /**
+     * Handles the incoming reasonPhrase.
+     * @param in The input stream of the reasonPhrase.
+     * @return The incoming reasonPhrase or the first part of it.
+     */
+    byte[] inAndWait(DataInputStream in);
 
     /**
      * Handles the outgoing reasonPhrase.
-     * @param handler The handler of the socket.
      * @param out  The reasonPhrase to write or a part of it.
      * @param buffer The buffer containing the reasonPhrase.
      */
-    void out(IMIMPServerSocketHandler handler, DataOutputStream out, byte[] buffer);
+    void out(DataOutputStream out, byte[] buffer);
 
     /**
      * Handles the data exchange between the proxy and the remote.

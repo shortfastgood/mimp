@@ -33,6 +33,10 @@ public record HTTPResponse(Protocol protocol, int statusCode, String reasonPhras
         }
     }
 
+    public boolean isWebSocketUpgrade() {
+        return statusCode == 101 && headers.stream().anyMatch(h -> h.name().equalsIgnoreCase("Upgrade") && h.values().contains("websocket"));
+    }
+
     @Override public String toString() {
         StringBuilder buf = new StringBuilder();
         buf.append("HTTP/1.1 ").append(statusCode).append(" ").append(reasonPhrase).append("\r\n");
