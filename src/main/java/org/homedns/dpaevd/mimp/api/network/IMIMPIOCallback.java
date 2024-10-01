@@ -8,6 +8,7 @@ package org.homedns.dpaevd.mimp.api.network;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Returns the incoming messages.
@@ -53,16 +54,23 @@ public interface IMIMPIOCallback {
      *
      * @param handler The handler of the socket.
      * @param remoteIn The input stream of the remote.
-     * @return The incoming reasonPhrase or the first part of it.
+     * @param proxyOut The output stream of the proxy.
      */
-    byte[] remoteIn(IMIMPServerSocketHandler handler, DataInputStream remoteIn);
+    void remoteInProxyOut(IMIMPServerSocketHandler handler, DataInputStream remoteIn, DataOutputStream proxyOut);
+
+    /**
+     * Handles the data exchange between the proxy and the remote.
+     * @param handler The handler of the socket.
+     * @param proxyIn The input stream of the proxy.
+     * @param remoteOut The output stream of the remote.
+     */
+    void wsProxyInRemoteOut(IMIMPServerSocketHandler handler, DataInputStream proxyIn, DataOutputStream remoteOut, AtomicBoolean isWebSocketClosed);
 
     /**
      * Handles the data exchange between the remote and the proxy.
-     *
      * @param handler The handler of the socket.
      * @param remoteIn The input stream of the remote.
      * @param proxyOut The output stream of the proxy.
      */
-    void remoteInProxyOut(IMIMPServerSocketHandler handler, DataInputStream remoteIn, DataOutputStream proxyOut);
+    void wsRemoteInProxyOut(IMIMPServerSocketHandler handler, DataInputStream remoteIn, DataOutputStream proxyOut, AtomicBoolean isWebSocketClosed);
 }

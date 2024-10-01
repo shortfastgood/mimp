@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Handles the data exchange between the proxy and the remote.
@@ -29,7 +30,7 @@ public class MIMPIOCallback implements IMIMPIOCallback {
     private static final Logger LOGGER = LoggerFactory.getLogger(MIMPIOCallback.class);
 
     @Override
-    public byte[] in(DataInputStream in) {
+    public byte[] in(final DataInputStream in) {
 
         byte[] buffer = new byte[MIMPConstants.BUFFER_SIZE];
         int bytesRead;
@@ -51,7 +52,7 @@ public class MIMPIOCallback implements IMIMPIOCallback {
     }
 
     @Override
-    public byte[] inAndWait(DataInputStream in) {
+    public byte[] inAndWait(final DataInputStream in) {
 
         // wait for data to be available
         try {
@@ -71,32 +72,7 @@ public class MIMPIOCallback implements IMIMPIOCallback {
     }
 
     @Override
-    public byte[] remoteIn(IMIMPServerSocketHandler handler, DataInputStream remoteIn) {
-        byte[] buffer = new byte[MIMPConstants.BUFFER_SIZE];
-        int bytesRead;
-        try {
-            bytesRead = remoteIn.read(buffer);
-        } catch (Exception e) {
-            LOGGER.warn("Error reading data from remote {}", e.getMessage());
-            handler.cleanup();
-            return new byte[0];
-        }
-        if (bytesRead == -1) {
-            // the connection has to be considered as stale. Both channels have to be closed.
-            LOGGER.warn("Connection closed by the remote");
-            handler.cleanup();
-            return new byte[0];
-        } else if (bytesRead > 0) {
-            byte[] inBuffer = new byte[bytesRead];
-            System.arraycopy(buffer, 0, inBuffer, 0, bytesRead);
-            return inBuffer;
-        } else {
-            return new byte[0];
-        }
-    }
-
-    @Override
-    public void out(DataOutputStream out, byte[] buffer) {
+    public void out(final DataOutputStream out, byte[] buffer) {
         try {
             out.write(buffer);
             out.flush();
@@ -121,5 +97,11 @@ public class MIMPIOCallback implements IMIMPIOCallback {
                 out(proxyOut, buffer);
             }
         }
+    }
+
+    @Override public void wsProxyInRemoteOut(IMIMPServerSocketHandler handler, DataInputStream proxyIn, DataOutputStream remoteOut, AtomicBoolean isWebSocketClosed) {
+    }
+
+    @Override public void wsRemoteInProxyOut(IMIMPServerSocketHandler handler, DataInputStream remoteIn, DataOutputStream proxyOut, AtomicBoolean isWebSocketClosed) {
     }
 }
