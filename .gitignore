@@ -54,3 +54,4 @@ target/
 nbproject
 Thumbs.db
 tomcat/
+.aider*
